@@ -424,7 +424,6 @@ local function destroyChildren()
     seqBaseFS    = {}
     seqMsgBtns   = {}
     selectedBase = nil
-    for o = 1, NUM_OBJ do cellFS[o] = {} end
 end
 
 local function makeBtn(name, w, h)
@@ -685,9 +684,6 @@ local function buildSequential()
                 return
             end
             sendMsg(buildMsg(objectives[selectedBase], cm))
-            selectedBase = nil
-            seqRefreshBaseButtons()
-            seqRefreshMsgButtons()
         end)
         btn:SetScript("OnEnter", function()
             if selectedBase then btn:SetBackdropBorderColor(1, 0.82, 0, 1) end
@@ -718,9 +714,6 @@ local function buildSequential()
                 return
             end
             sendMsg(buildMsg(objectives[selectedBase], cm))
-            selectedBase = nil
-            seqRefreshBaseButtons()
-            seqRefreshMsgButtons()
         end)
         btn:SetScript("OnEnter", function()
             if selectedBase then btn:SetBackdropBorderColor(1, 0.82, 0, 1) end

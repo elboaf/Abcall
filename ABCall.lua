@@ -132,8 +132,12 @@ local function calcVertSize()
 end
 
 local function calcSeqSize()
-    local basesW = 0
-    for i = 1, NUM_OBJ do basesW = basesW + objWidths[i] + BTN_GAP end
+    -- Base buttons: each must be at least as wide as its label
+    local minBaseBtnW = 0
+    for i = 1, NUM_OBJ do
+        if objWidths[i] > minBaseBtnW then minBaseBtnW = objWidths[i] end
+    end
+    local basesW = (minBaseBtnW + BTN_GAP) * NUM_OBJ
     local row1W = 0
     for _, mi in ipairs(seqRow1) do row1W = row1W + msgWidths[mi] + BTN_GAP end
     local row2W = 0
@@ -633,7 +637,11 @@ local function buildSequential()
     local innerW = fw - PAD * 2
 
     -- Row 1: base buttons, evenly spaced across innerW
+    -- Each button gets an equal share, guaranteed >= widest label
     local baseBtnW = math.floor((innerW - BTN_GAP * (NUM_OBJ - 1)) / NUM_OBJ)
+    local minW = 0
+    for i = 1, NUM_OBJ do if objWidths[i] > minW then minW = objWidths[i] end end
+    if baseBtnW < minW then baseBtnW = minW end
     local y1 = -PAD
 
     for o, obj in ipairs(objectives) do

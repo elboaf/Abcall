@@ -2,7 +2,7 @@
 ## Title: ABCall - Arathi Basin Callouts
 ## Notes: Quick callout buttons for Arathi Basin base status. Use /abcall to toggle.
 ## Author: You
-## Version: 1.0.1
+## Version: 1.0.2
 ## SavedVariables: ABCallDB
 
 ABCall.lua

@@ -1,0 +1,7 @@
+## Interface: 11200
+## Title: ABCall - Arathi Basin Callouts
+## Notes: Quick callout buttons for Arathi Basin base status. Use /abcall to toggle.
+## Author: You
+## Version: 1.0
+
+ABCall.lua

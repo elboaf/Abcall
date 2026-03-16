@@ -3,6 +3,7 @@
 -- /abcall        - toggle show/hide
 -- /abcall layout - cycle layout (vertical → horizontal → sequential)
 -- /abcall debug  - toggle debug mode (prints to chat instead of /bg)
+-- /abcall reset  - reset frame position and scale to default
 -- SavedVariables: ABCallDB
 
 local AB_MAP_NAME = "Arathi Basin"
@@ -48,6 +49,7 @@ local vertRows = {
 
 local manualOverride  = false
 local debugMode       = false
+local frameScale      = 1.0
 local layoutMode      = "vertical"   -- "vertical" | "horizontal" | "sequential"
 local layoutCycle     = { "vertical", "horizontal", "sequential" }
 
@@ -162,7 +164,7 @@ frame:SetMovable(true)
 frame:EnableMouse(true)
 frame:RegisterForDrag("LeftButton")
 frame:SetScript("OnDragStart", function() frame:StartMoving() end)
-frame:SetScript("OnDragStop",  function() frame:StopMovingOrSizing() end)
+frame:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
 frame:Hide()
 
 -- ─────────────────────────────────────────────
@@ -248,6 +250,7 @@ end
 local function saveVars()
     ABCallDB = ABCallDB or {}
     ABCallDB.layout = layoutMode
+    ABCallDB.scale  = frameScale
     ABCallDB.formats = {}
     for k, v in pairs(msgFormats) do
         ABCallDB.formats[k] = v
@@ -258,6 +261,9 @@ local function loadVars()
     if not ABCallDB then return end
     if ABCallDB.layout then
         layoutMode = ABCallDB.layout
+    end
+    if ABCallDB.scale then
+        frameScale = ABCallDB.scale
     end
     if ABCallDB.formats then
         for k, v in pairs(ABCallDB.formats) do
@@ -273,7 +279,7 @@ end
 -- ─────────────────────────────────────────────
 local settingsFrame = CreateFrame("Frame", "ABCallSettings", UIParent)
 settingsFrame:SetWidth(300)
-settingsFrame:SetHeight(220)
+settingsFrame:SetHeight(260)
 settingsFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 settingsFrame:SetBackdrop({
     bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -356,9 +362,44 @@ for i, field in ipairs(formatFields) do
     settingsEditBoxes[fkey] = eb
 end
 
+-- Scale slider
+local scaleLbl = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+scaleLbl:SetPoint("BOTTOMLEFT", settingsFrame, "BOTTOMLEFT", SF_PAD, 52)
+scaleLbl:SetText("|cffFFD700Scale:|r")
+scaleLbl:SetTextColor(1, 0.82, 0)
+
+local scaleValLbl = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+scaleValLbl:SetPoint("BOTTOMRIGHT", settingsFrame, "BOTTOMRIGHT", -SF_PAD, 52)
+scaleValLbl:SetTextColor(1, 1, 1)
+
+local slider = CreateFrame("Slider", "ABCallScaleSlider", settingsFrame, "OptionsSliderTemplate")
+slider:SetWidth(300 - SF_PAD * 2 - 4)
+slider:SetHeight(16)
+slider:SetPoint("BOTTOM", settingsFrame, "BOTTOM", 0, 30)
+slider:SetMinMaxValues(0.5, 2.0)
+slider:SetValueStep(0.05)
+slider:SetValue(frameScale)
+-- Hide the default min/max labels baked into OptionsSliderTemplate
+getglobal(slider:GetName().."Low"):SetText("")
+getglobal(slider:GetName().."High"):SetText("")
+getglobal(slider:GetName().."Text"):SetText("")
+
+local function updateScaleLabel(val)
+    scaleValLbl:SetText(string.format("%.0f%%", val * 100))
+end
+updateScaleLabel(frameScale)
+
+slider:SetScript("OnValueChanged", function()
+    local val = math.floor(slider:GetValue() / 0.05 + 0.5) * 0.05
+    frameScale = val
+    frame:SetScale(frameScale)
+    updateScaleLabel(val)
+    saveVars()
+end)
+
 -- Helper text at the bottom
 local hint = settingsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-hint:SetPoint("BOTTOM", settingsFrame, "BOTTOM", 0, 10)
+hint:SetPoint("BOTTOM", settingsFrame, "BOTTOM", 0, 14)
 hint:SetText("|cff888888Tokens: %location%  %num% (numbers only)|r")
 
 -- Top-left corner dot: opens settings
@@ -378,10 +419,12 @@ settingsBtn:SetScript("OnClick", function()
     if settingsFrame:IsShown() then
         settingsFrame:Hide()
     else
-        -- Refresh editboxes with current values before showing
+        -- Refresh editboxes and slider with current values before showing
         for _, field in ipairs(formatFields) do
             settingsEditBoxes[field.key]:SetText(msgFormats[field.key])
         end
+        slider:SetValue(frameScale)
+        updateScaleLabel(frameScale)
         settingsFrame:Show()
     end
 end)
@@ -740,6 +783,7 @@ local function rebuild()
     if     layoutMode == "horizontal" then buildHorizontal()
     elseif layoutMode == "vertical"   then buildVertical()
     else                                   buildSequential() end
+    frame:SetScale(frameScale)
     cornerBtn:ClearAllPoints()
     cornerBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
     cornerBtn:SetFrameLevel(frame:GetFrameLevel() + 10)
@@ -795,7 +839,16 @@ end)
 -- ─────────────────────────────────────────────
 SLASH_ABCALL1 = "/abcall"
 SlashCmdList["ABCALL"] = function(arg)
-    if arg == "debug" then
+    if arg == "reset" then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        frameScale = 1.0
+        frame:SetScale(frameScale)
+        frame:Show()
+        manualOverride = true
+        saveVars()
+        DEFAULT_CHAT_FRAME:AddMessage("|cffFFD700ABCall:|r Frame reset to center.")
+    elseif arg == "debug" then
         debugMode = not debugMode
         if debugMode then
             DEFAULT_CHAT_FRAME:AddMessage("|cffFFD700ABCall:|r Debug ON - messages print here instead of /bg.")
